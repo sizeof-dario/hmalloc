@@ -11,6 +11,11 @@ void *hmalloc(size_t size)
         hstart = sbrk(0);
     }
 
+    // We must guarantee alignment for a well defined behaviour according to
+    // the C standard.
+    size = ALIGN(size);
+
+
     // hmalloc first scans the heap for a block of memory that is big enough to
     // contain size bytes of data. It will eventually move the program break up
     // if it finds none.
@@ -21,15 +26,17 @@ void *hmalloc(size_t size)
         if(((mbheader *)curr)->free && ((mbheader *)curr)->size >= size)
         {
             ((mbheader *)curr)->free = 0;
-            return (char *)curr + sizeof(mbheader);
+            return (char *)curr + ALIGN(sizeof(mbheader));
         }
 
-        curr = (char *)curr + sizeof(mbheader) + ((mbheader *)curr)->size;
+        curr = (char *)curr             \
+            + ALIGN(sizeof(mbheader))   \
+            + ((mbheader *)curr)->size;
     }
 
     // Above, searching for a big enough block. Below, raising the prog. break
 
-    void *p = sbrk(size + sizeof(mbheader));
+    void *p = sbrk(size + ALIGN(sizeof(mbheader)));
     
     // There's a possibility sbrk() fails.
     if(p == (void *)-1)
@@ -41,13 +48,13 @@ void *hmalloc(size_t size)
     ((mbheader *)p)->free = 0;
     ((mbheader *)p)->size = size;
 
-    return (char *)p + sizeof(mbheader);
+    return (char *)p + ALIGN(sizeof(mbheader));
 }
 
 void hfree(void *p)
 {
     if(p != NULL)
     {
-        ((mbheader *)((char *)p - sizeof(mbheader)))->free = 1;
+        ((mbheader *)((char *)p - ALIGN(sizeof(mbheader))))->free = 1;
     }
 }
