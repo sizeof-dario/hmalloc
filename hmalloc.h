@@ -11,12 +11,12 @@
 // Memory block header used by `hmalloc()` and `hfree()`.
 typedef struct mbheader
 {
-    size_t blocksize;       // Size of the header associated memory block.
-    int free;               // Flag for wether a block is free or occupied.
+    size_t blocksize;       // Size of the block associated to this.
+    int free;               // Flag for whether a block is free or occupied.
     struct mbheader *next;  // Pointer to the next memory block header.
 } mbheader;
 
-// Aligns `x` to the alignement of at least the greatest standard type with no
+// Aligns `x` to the alignment of at least the greatest standard type with no
 // alignment specifiers.
 #define ALIGN(x) \
     (((x) + alignof(max_align_t) - 1) & ~(alignof(max_align_t) - 1))
