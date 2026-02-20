@@ -4,6 +4,19 @@ A didactic heap memory allocator project to learn about memory management in use
 > [!Tip]
 > This README is intended as a progress journal. Each paragraph has an associated commit linked in the title.
 
+Current state of the project:
+
+<div align="center">
+
+| Minimal `hmalloc()`          | Minimal `hfree()`                      |
+|:-----------------------------|:---------------------------------------|
+| ✅ `sbrk()` for small blocks | ✅ `sbrk()` to lower the program break |
+| ❌ `mmap()` for big blocks   | ❌ `munmap()` for big blocks           |
+| ✅ Memory alignment          | ✅ Argument pointer checking           |
+| ❌ Block splitting           | ❌ Block coalescing                    |
+
+</div>
+
 ## [Minimal implementation](https://github.com/sizeof-dario/hmalloc/commit/85772ac) of `hmalloc()` and `hfree()`
 
 
@@ -28,7 +41,7 @@ A working ~-ish~ allocator must ensure memory alignment in conformity with the C
 > [!Note]
 > **Up-to-this-version limitations**: `free()` still wasn't updated and block splitting and coalescing are yet to be implemented.
 
-## [Minimal working](https://github.com/sizeof-dario/hmalloc/commit/6c7b10b) `free()`
+## [Minimal working](https://github.com/sizeof-dario/hmalloc/commit/6bbd5ae) `free()`
 
 `free()` needs to know when the memory block pointed by its argument is the last in the heap, in order to lower the program break upon freeing.
 To achieve this, the block header is provided with a pointer to the next block, that is set to NULL for the last block.
