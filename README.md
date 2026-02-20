@@ -4,7 +4,7 @@ A didactic heap memory allocator project to learn about memory management in use
 > [!Tip]
 > This README is intended as a progress journal. Each paragraph has an associated commit linked in the title.
 
-## [Minimal implementation](https://github.com/sizeof-dario/hmalloc/commit/85772acec980ebc011b0253488e7b8918c3aa94d) of `hmalloc()` and `hfree()`
+## [Minimal implementation](https://github.com/sizeof-dario/hmalloc/commit/85772ac) of `hmalloc()` and `hfree()`
 
 
 The smallest possible working-ish version of these functions works with non-aligned memory blocks provided with a simple header.
@@ -28,7 +28,7 @@ A working ~-ish~ allocator must ensure memory alignment in conformity with the C
 > [!Note]
 > **Up-to-this-version limitations**: `free()` still wasn't updated and block splitting and coalescing are yet to be implemented.
 
-## [Minimal working](https://github.com/sizeof-dario/hmalloc/commit/bc545a745b8675a0f378322dcf07dc294e700f9f) `free()`
+## [Minimal working](https://github.com/sizeof-dario/hmalloc/commit/6c7b10b) `free()`
 
 `free()` needs to know when the memory block pointed by its argument is the last in the heap, in order to lower the program break upon freeing.
 To achieve this, the block header is provided with a pointer to the next block, that is set to NULL for the last block.

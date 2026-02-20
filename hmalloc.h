@@ -1,30 +1,30 @@
 #ifndef HMALLOC_H
 #define HMALLOC_H 1
 
-// Required for sbrk() since glibc 2.19.
+// Feature test macro required for `sbrk()` since glibc 2.19.
 #define _DEFAULT_SOURCE
 
-#include <stdalign.h> // For alignof().
-#include <stddef.h> // For max_align_t.
-#include <unistd.h> // For sbrk().
+#include <stdalign.h>   // For `alignof()`.
+#include <stddef.h>     // For `max_align_t`.
+#include <unistd.h>     // For `sbrk()`.
 
-// Memory block header used by hmalloc().
+// Memory block header used by `hmalloc()` and `hfree()`.
 typedef struct mbheader
 {
-    size_t size;
-    int free;
-    struct mbheader *next;
+    size_t blocksize;       // Size of the header associated memory block.
+    int free;               // Flag for wether a block is free or occupied.
+    struct mbheader *next;  // Pointer to the next memory block header.
 } mbheader;
 
-// Aligns x to the alignement of at least the greatest standard type with no 
+// Aligns `x` to the alignement of at least the greatest standard type with no
 // alignment specifiers.
 #define ALIGN(x) \
     (((x) + alignof(max_align_t) - 1) & ~(alignof(max_align_t) - 1))
 
-// Allocates size bytes of heap memory.
+// Allocates `size` bytes of heap memory.
 void *hmalloc(size_t size);
 
-// Frees heap memory allocated via hmalloc().
+// Frees heap memory pointed by `p` and allocated by `hmalloc()`.
 void hfree(void *p);
 
 #endif // HMALLOC_H
