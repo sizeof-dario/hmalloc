@@ -8,11 +8,12 @@
 #include <stddef.h> // For max_align_t.
 #include <unistd.h> // For sbrk().
 
-// Memory block header used by hmalloc.
+// Memory block header used by hmalloc().
 typedef struct mbheader
 {
     size_t size;
     int free;
+    struct mbheader *next;
 } mbheader;
 
 // Aligns x to the alignement of at least the greatest standard type with no 
@@ -23,7 +24,7 @@ typedef struct mbheader
 // Allocates size bytes of heap memory.
 void *hmalloc(size_t size);
 
-// Frees heap memory allocated via hmalloc.
+// Frees heap memory allocated via hmalloc().
 void hfree(void *p);
 
 #endif // HMALLOC_H
