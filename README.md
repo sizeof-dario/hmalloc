@@ -41,7 +41,7 @@ A working ~-ish~ allocator must ensure memory alignment in conformity with the C
 > [!Note]
 > **Up-to-this-version limitations**: `free()` still wasn't updated and block splitting and coalescing are yet to be implemented.
 
-## [Minimal working](https://github.com/sizeof-dario/hmalloc/commit/6bbd5ae) `free()`
+## [Minimal working](https://github.com/sizeof-dario/hmalloc/commit/6c7b10b) `free()`
 
 `free()` needs to know when the memory block pointed by its argument is the last in the heap, in order to lower the program break upon freeing.
 To achieve this, the block header is provided with a pointer to the next block, that is set to NULL for the last block.
