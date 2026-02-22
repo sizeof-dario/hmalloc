@@ -57,7 +57,7 @@ A header with such pointer also allows `malloc()` to traverse the memory blocks 
 > **Bug**: `free()` misbehaves when the last block in the heap is freed when one or more blocks before it are already free. The function is supposed to never leave a free block at the end of the heap.
 > However, upon lowering the program break when the last block gets freed, it doesn't check if the second-to-last block was marked as free (which should make the program break get lowered more), so a free block is left on top of the heap.
 
-## Block splitting in `hmalloc()`
+## [Block splitting](https://github.com/sizeof-dario/hmalloc/commit/e0fbcfb) in `hmalloc()`
 When implementing an allocator, it's important to prevent memory fragmentation. That is, involuntarily subdividing the heap in so many small blocks that they become virtually unusable, potentially making a lot of free space get wasted.
 Block splitting takes care of internal fragmentation (unusable space inside a single whole memory block), still leaving external fragmentation.
 
