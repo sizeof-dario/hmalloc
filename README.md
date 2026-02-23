@@ -8,15 +8,15 @@ Current state of the project, as a minimal version:
 
 <div align="center">
 
-|`hmalloc()`          | `hfree()`                 | `hcalloc()`         | `hrealloc()`         | `hreallocarray()`         | 
+| ✅ `hmalloc()`      | ✅ `hfree()`              | ❌ `hcalloc()`      | ❌ `hrealloc()`      | ❌ `hreallocarray()`      | 
 |:--------------------|:--------------------------|:--------------------|:---------------------|:--------------------------|
 | ✅ Memory alignment | ✅ Program break lowering | ❌ (absent)         | ❌ (absent)          | ❌ (absent)               |
 | ✅ Block splitting  | ✅ Argument checking      |                     |                      |                           |
-|                     | ❌ Block coalescing       |                     |                      |                           |
+|                     | ✅ Block coalescing       |                     |                      |                           |
 
 </div>
 
-Unit tests: ❌ absent.
+Unit tests: ❌ (absent).
 
 ## [Minimal implementation](https://github.com/sizeof-dario/hmalloc/commit/85772ac) of `hmalloc()` and `hfree()`
 
@@ -67,3 +67,14 @@ To introduce block splitting, the header was provided with a pointer to the prev
 
 > [!Note]
 > **Bug fix:** `free()` now works correctly, with the implementation of heap trimming.
+
+## [Block coalescing](https://github.com/sizeof-dario/hmalloc/commit/2ed6f95) in `hfree()`
+
+Block coalescing was implemented to reduce external fragmentation (that is, the unwanted creation of small free blocks all adjacent to each other).
+
+> [!Note]
+> At this point, `hmalloc()` and `hfree()` are supposed to be a minimal working allocator.
+
+
+
+
