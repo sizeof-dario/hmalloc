@@ -7,6 +7,39 @@ static void *heap_start = NULL;
 
 
 
+// Performs block coalescing on the right. Used internally by `hfree()`.
+// Note that the function doesn't check if `p_hdr->hdr_next` is a non-`NULL`
+// pointer and if it's free because this check is performed by `hfree()`.
+static mbheader *coalesce_right(mbheader *p_hdr)
+{
+    p_hdr->payload_sz += (AL_HDR_SZ + p_hdr->hdr_next->payload_sz);
+    p_hdr->hdr_next = p_hdr->hdr_next->hdr_next;
+    
+    // We check `p_hdr->hdr_next` because we already assigned
+    // `p_hdr->hdr_next->hdr_next` to it.
+    if(p_hdr->hdr_next != NULL)
+    {
+        p_hdr->hdr_next->hdr_prev = p_hdr;
+    }
+    
+    return p_hdr;
+}
+
+
+
+// Performs block coalescing on the left. Used internally by `hfree()`.
+// Note that the function doesn't check if `p_hdr->hdr_prev` is a non-`NULL`
+// pointer and if it's free because this check is performed by `hfree()`.
+static mbheader *coalesce_left(mbheader *p_hdr)
+{
+    p_hdr = p_hdr->hdr_prev;
+    coalesce_right(p_hdr);
+
+    return p_hdr;
+}
+
+
+
 void *hmalloc(size_t size)
 {
     // Memory alignment must be guaranteed for a well defined behaviour
@@ -156,39 +189,43 @@ void hfree(void *p)
 
     // We can now assume `p` is valid.
 
-    // If `p` points to the last block in the heap, we can lower the program
-    // break. Otherwise, we just mark the block as free for future reusage.
+    //Let's preemtively free the block.
+    p_hdr->free = 1;
+
+    // We now check if we can coalesce the block with its neighbours.
+    
+    while(p_hdr->hdr_next != NULL && p_hdr->hdr_next->free)
+    {
+        p_hdr = coalesce_right(p_hdr);
+    }
+
+    while(p_hdr->hdr_prev != NULL && p_hdr->hdr_prev->free)
+    {
+        p_hdr = coalesce_left(p_hdr);
+    }
+
+    // Note that if left coalescing happened, now we are pointint to the header
+    // of the block that was on the left of the block originally pointed by
+    // `p_hdr`.
+
+    // If `p_hdr` points to the last block in the heap, we can lower the
+    // program break.
     if(((mbheader *)p_hdr)->hdr_next == NULL)
     {
-        // We reuse `hdr_curr` to possibly traverse back the heap if multiple
-        // free blocks are present, to lower the program break.
-        hdr_curr = ((mbheader *)p_hdr);
-        // Keeps track of how much the program break will decrease.
-        size_t shift = -(hdr_curr->payload_sz +  AL_HDR_SZ);
-
-        while(hdr_curr->hdr_prev != NULL && hdr_curr->hdr_prev->free == 1)
-        {
-            // As long as we don't reach the start of the heap, we increase (as
-            // a negative value) `shift` and set to `NULL` the `hdr_next` 
-            // pointer of the previous header. 
-            shift -= (hdr_curr->hdr_prev->payload_sz +  AL_HDR_SZ);
-            hdr_curr->hdr_prev->hdr_next = NULL;
-
-            hdr_curr = hdr_curr->hdr_prev;
-        }
-
-        // Call assumed not to fail.
-        sbrk((intptr_t)(shift));
+        
                
         // If we reached the start of the heap, we reset `heap_start` back to
-        // `NULL`.
-        if(hdr_curr->hdr_prev == NULL)
+        // `NULL`. Otherwise, remove a reference to the block.
+        if(p_hdr->hdr_prev == NULL)
         {
             heap_start = NULL;
         }
-    }
-    else
-    {
-        p_hdr->free = 1;
-    }      
+        else
+        {
+            p_hdr->hdr_prev->hdr_next = NULL;
+        }
+
+        // Call assumed not to fail.
+        sbrk((intptr_t)(- AL_HDR_SZ - p_hdr->payload_sz));
+    }     
 }
