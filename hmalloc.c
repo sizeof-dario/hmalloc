@@ -153,6 +153,27 @@ void *hmalloc(size_t size)
 
 
 
+
+void *hcalloc(size_t n_el, size_t size_el)
+{
+    // If an overflow would happen, we return a `NULL` pointer.
+    if(size_el != 0 && n_el > SIZE_MAX / size_el)
+    {
+        return NULL;
+    }
+
+    void *p = hmalloc(n_el * size_el);
+    if(p != NULL)
+    {
+        // We initialize the memory to `0`.
+        memset(p, 0, n_el * size_el);
+    }
+
+    return p;
+}
+
+
+
 void hfree(void *p)
 {
     // If argument is `NULL`, the expected behaviour is to do nothing.

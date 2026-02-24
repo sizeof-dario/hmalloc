@@ -10,7 +10,10 @@
 
 #include <stdalign.h>   // For `alignof()`.
 #include <stddef.h>     // For `max_align_t`.
+#include <stdint.h>     // For `SIZE_MAX`.
+#include <string.h>     // For `memset()`.
 #include <unistd.h>     // For `sbrk()`.
+
 
 
 
@@ -47,7 +50,12 @@ void *hmalloc(size_t size);
 
 
 
-// Frees heap memory pointed by `p` and allocated by `hmalloc()`.
+// Allocates enough space for `n_el` elements of size `size_el`.
+void *hcalloc(size_t n_el, size_t size_el);
+
+
+
+// Frees heap memory pointed by `p`, allocated by `hmalloc()` or `hcalloc()`.
 void hfree(void *p);
 
 
