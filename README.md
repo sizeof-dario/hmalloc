@@ -8,11 +8,11 @@ Current state of the project, as a minimal version:
 
 <div align="center">
 
-| ✅ `hmalloc()`      | ✅ `hfree()`              | ❌ `hcalloc()`      | ❌ `hrealloc()`      | ❌ `hreallocarray()`      | 
-|:--------------------|:--------------------------|:--------------------|:---------------------|:--------------------------|
-| ✅ Memory alignment | ✅ Program break lowering | ❌ (absent)         | ❌ (absent)          | ❌ (absent)               |
-| ✅ Block splitting  | ✅ Argument checking      |                     |                      |                           |
-|                     | ✅ Block coalescing       |                     |                      |                           |
+| ✅ `hmalloc()`      | ✅ `hfree()`              | ✅ `hcalloc()`           | ❌ `hrealloc()`      | ❌ `hreallocarray()`      | 
+|:--------------------|:--------------------------|:-------------------------|:---------------------|:--------------------------|
+| ✅ Memory alignment | ✅ Program break lowering | ✅ Overflow checking     | ❌ (absent)          | ❌ (absent)               |
+| ✅ Block splitting  | ✅ Argument checking      | ✅ Memory initialization |                      |                           |
+|                     | ✅ Block coalescing       |                          |                      |                           |
 
 </div>
 
@@ -22,7 +22,7 @@ Unit tests: ❌ (absent).
 
 
 The smallest possible working-ish version of these functions works with non-aligned memory blocks provided with a simple header.
-Upon call, `hmalloc()` first tries to find a free block which is big enough, then, if that fails, it calls `sbrk()` to shift the program break upwards.
+Upon call, `hmalloc()` first tries to find a free block which is big enough, then, if that fails, it calls `sbrk()` to shift the program break upwards. When receiving an argument of `0`, `hmalloc()` still returns a non-`NULL` pointer that can be passed to `hfree()` and that should never be used.
 All `hfree()` does – for now – is marking a block as free, so, in particular, the program break is never lowered.
 
 > [!Note]
@@ -34,27 +34,27 @@ All `hfree()` does – for now – is marking a block as free, so, in particular
 > This would prevent this version from even being marked as "working-ish". However, misaligned memory is at least compatible with x86_64 architecture, with a performance penalty.
 
 > [!Warning]
-> Since `free()` doesn't check if its argument is a valid pointer, it could cause undefined behaviour or heap corruption if used incorrectly.
+> Since `hfree()` doesn't check if its argument is a valid pointer, it could cause undefined behaviour or heap corruption if used incorrectly.
 
 ## [Memory alignment](https://github.com/sizeof-dario/hmalloc/commit/f2b3800) in `hmalloc()`
 
 A _working_ allocator must ensure memory alignment in conformity with the C standard, to avoid undefined behaviour and a potential SIGBUS or any performance issue.
 > [!Note]
-> **Up-to-this-version limitations**: `free()` still wasn't updated and block splitting and coalescing are yet to be implemented.
+> **Up-to-this-version limitations**: `hfree()` still wasn't updated and block splitting and coalescing are yet to be implemented.
 
-## [Minimal working](https://github.com/sizeof-dario/hmalloc/commit/6c7b10b) `free()`
+## [Minimal working](https://github.com/sizeof-dario/hmalloc/commit/6c7b10b) `hfree()`
 
-`free()` needs to know when the memory block pointed by its argument is the last in the heap, in order to lower the program break upon freeing.
+`hfree()` needs to know when the memory block pointed by its argument is the last in the heap, in order to lower the program break upon freeing.
 To achieve this, the block header is provided with a pointer to the next block, that is set to `NULL` for the last block.
 
-A header with such pointer also allows `malloc()` to traverse the memory blocks as a linked list, for an easier manipulation. 
+A header with such pointer also allows `hmalloc()` to traverse the memory blocks as a linked list, for an easier manipulation. 
 
 `hfree()` also checks if its argument is an invalid pointer, preventing heap corruption or any undefined behaviour, and if it points to a block that was already freed.
 > [!Note]
 > **Up-to-this-version limitations**: No block splitting and no coalescing.
 
 > [!Warning]
-> **Bug**: `free()` misbehaves when the last block in the heap is freed when one or more blocks before it are already free. The function is supposed to never leave a free block at the end of the heap.
+> **Bug**: `hfree()` misbehaves when the last block in the heap is freed when one or more blocks before it are already free. The function is supposed to never leave a free block at the end of the heap.
 > However, upon lowering the program break when the last block gets freed, it doesn't check if the second-to-last block was marked as free (which should make the program break get lowered more), so a free block is left on top of the heap.
 
 ## [Block splitting](https://github.com/sizeof-dario/hmalloc/commit/e0fbcfb) in `hmalloc()`
@@ -66,15 +66,17 @@ To introduce block splitting, the header was provided with a pointer to the prev
 > **Up-to-this-version limitations**: Still no coalescing.
 
 > [!Note]
-> **Bug fix:** `free()` now works correctly, with the implementation of heap trimming.
+> **Bug fix:** `hfree()` now works correctly, with the implementation of cascading heap trimming.
 
 ## [Block coalescing](https://github.com/sizeof-dario/hmalloc/commit/2ed6f95) in `hfree()`
 
-Block coalescing was implemented to reduce external fragmentation (that is, the unwanted creation of small free blocks all adjacent to each other).
+Block coalescing was implemented to reduce external fragmentation (that is, the unwanted creation of small free blocks all adjacent to each other). Cascading heap trimming is not necessary anymore since coalescing makes sure there can only be one free block at the top of the heap.
 
-> [!Note]
+> [!Tip]
 > At this point, `hmalloc()` and `hfree()` are supposed to be a minimal working allocator.
 
+## [Minimal working](https://github.com/sizeof-dario/hmalloc/commit/7821367) `hcalloc()`
 
+`hcalloc()` has been included in the allocator. It was chosen for it to still return a non-`NULL` pointer if one or both of its argument are `0`. Such pointer can still be passed to `hfree()` and should never be used.
 
 
