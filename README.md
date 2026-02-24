@@ -8,7 +8,7 @@ Current state of the project, as a minimal version:
 
 <div align="center">
 
-| ✅ `hmalloc()`      | ✅ `hfree()`              | ✅ `hcalloc()`           | ❌ `hrealloc()`      | ❌ `hreallocarray()`      | 
+| `hmalloc()`         | `hfree()`                 | `hcalloc()`              | `hrealloc()`         | `hreallocarray()`         | 
 |:--------------------|:--------------------------|:-------------------------|:---------------------|:--------------------------|
 | ✅ Memory alignment | ✅ Program break lowering | ✅ Overflow checking     | ❌ (absent)          | ❌ (absent)               |
 | ✅ Block splitting  | ✅ Argument checking      | ✅ Memory initialization |                      |                           |
