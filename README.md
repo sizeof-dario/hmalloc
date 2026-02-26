@@ -8,11 +8,11 @@ Current state of the project, as a minimal version:
 
 <div align="center">
 
-| `hmalloc()`         | `hfree()`                 | `hcalloc()`              | `hrealloc()`         | `hreallocarray()`         | 
-|:--------------------|:--------------------------|:-------------------------|:---------------------|:--------------------------|
-| ✅ Memory alignment | ✅ Program break lowering | ✅ Overflow checking     | ❌ (absent)          | ❌ (absent)               |
-| ✅ Block splitting  | ✅ Argument checking      | ✅ Memory initialization |                      |                           |
-|                     | ✅ Block coalescing       |                          |                      |                           |
+| `hmalloc()`          | `hfree()`                 | `hcalloc()`              | `hrealloc()`          | `hreallocarray()`         | 
+|:---------------------|:--------------------------|:-------------------------|:----------------------|:--------------------------|
+| ✅ Memory alignment  | ✅ Program break lowering | ✅ Overflow checking     | ✅ Edge cases         | ❌ (absent)               |
+| ✅ Block splitting   | ✅ Argument checking      | ✅ Memory initialization | ⚠️ Always reallocates |                           |
+| ✅ Overflow checking | ✅ Block coalescing       |                          |                       |                           |
 
 </div>
 
@@ -73,10 +73,15 @@ To introduce block splitting, the header was provided with a pointer to the prev
 Block coalescing was implemented to reduce external fragmentation (that is, the unwanted creation of small free blocks all adjacent to each other). Cascading heap trimming is not necessary anymore since coalescing makes sure there can only be one free block at the top of the heap.
 
 > [!Tip]
-> At this point, `hmalloc()` and `hfree()` are supposed to be a minimal working allocator.
+> At this point, `hmalloc()` and `hfree()` are supposed to be a minimal working allocator[^1].
 
-## [Minimal working](https://github.com/sizeof-dario/hmalloc/commit/7821367) `hcalloc()`
+## [Working](https://github.com/sizeof-dario/hmalloc/commit/7821367) `hcalloc()`
 
 `hcalloc()` has been included in the allocator. It was chosen for it to still return a non-`NULL` pointer if one or both of its argument are `0`. Such pointer can still be passed to `hfree()` and should never be used.
 
+## [Minimal working](https://github.com/sizeof-dario/hmalloc/commit/2c81caf) `hrealloc()`
 
+A minimal version of `hrealloc()` was implemented. It checks for the edge cases (if its arguments are `NULL` or `0`) and always reallocates the block. This version is intentionally simplistic and far from finished, since it should distinguish between shrinking and enlarging a block of memory, and decide what to do in the second case depending on whether there is free space around the block or if it's at the end of the heap.
+
+
+[^1]: `hmalloc()` should perform an overflow checking. However, to this version, it does not. This gets fixed when `hrealloc()` is introduced for the first time. 
