@@ -45,8 +45,17 @@ typedef struct mbheader
 
 
 
+// Gets the minimum of two values.
+#define MIN(x, y) ((x) < (y) ? (x) : (y))
+
+
 // Allocates `size` bytes of heap memory.
 void *hmalloc(size_t size);
+
+
+
+// Frees heap memory pointed by `p`, allocated by `hmalloc()` or `hcalloc()`.
+void hfree(void *p);
 
 
 
@@ -55,9 +64,8 @@ void *hcalloc(size_t n_el, size_t size_el);
 
 
 
-// Frees heap memory pointed by `p`, allocated by `hmalloc()` or `hcalloc()`.
-void hfree(void *p);
-
+// Reallocates memory pointed to by `p` resizing it to `size_new`.
+void *hrealloc(void *p, size_t size_new);
 
 
 #endif // HMALLOC_H

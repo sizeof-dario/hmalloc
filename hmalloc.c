@@ -7,35 +7,82 @@ static void *heap_start = NULL;
 
 
 
-// Performs block coalescing on the right. Used internally by `hfree()`.
-// Note that the function doesn't check if `p_hdr->hdr_next` is a non-`NULL`
-// pointer and if it's free because this check is performed by `hfree()`.
-static mbheader *coalesce_right(mbheader *p_hdr)
+// Performs right-block-coalescing once, without checking whether the block on
+// the right exists (that is, if `hdr->hdr_next` is not `NULL`) or if i's free. 
+// Those checks must be performed by the caller function.
+//
+// This function shall never be called directly by the user and it is in fact a
+// static function in the implementation file.
+static mbheader *coalesce_right(mbheader *hdr)
 {
-    p_hdr->payload_sz += (AL_HDR_SZ + p_hdr->hdr_next->payload_sz);
-    p_hdr->hdr_next = p_hdr->hdr_next->hdr_next;
+    hdr->payload_sz += (AL_HDR_SZ + hdr->hdr_next->payload_sz);
+    hdr->hdr_next = hdr->hdr_next->hdr_next;
     
     // We check `p_hdr->hdr_next` because we already assigned
     // `p_hdr->hdr_next->hdr_next` to it.
-    if(p_hdr->hdr_next != NULL)
+    if(hdr->hdr_next != NULL)
     {
-        p_hdr->hdr_next->hdr_prev = p_hdr;
+        hdr->hdr_next->hdr_prev = hdr;
     }
     
-    return p_hdr;
+    return hdr;
 }
 
 
 
-// Performs block coalescing on the left. Used internally by `hfree()`.
-// Note that the function doesn't check if `p_hdr->hdr_prev` is a non-`NULL`
-// pointer and if it's free because this check is performed by `hfree()`.
-static mbheader *coalesce_left(mbheader *p_hdr)
+// Performs left and right coalescing as long as free neightbours to the block
+// pointed to by `hdr` are find.
+//
+// The block pointed to by `hdr` is not marked as free by the funcion, so this
+// action must be performed by the caller funcion.
+//
+// This function shall never be called directly by the user and it is in fact a
+// static function in the implementation file. 
+static mbheader *coalesce(mbheader *hdr)
 {
-    p_hdr = p_hdr->hdr_prev;
-    coalesce_right(p_hdr);
+    while(hdr->hdr_next != NULL && hdr->hdr_next->free)
+    {
+        hdr = coalesce_right(hdr);
+    }
 
-    return p_hdr;
+    while(hdr->hdr_prev != NULL && hdr->hdr_prev->free)
+    {
+        hdr = coalesce_right(hdr->hdr_prev);
+    }
+
+    return hdr;
+}
+
+
+
+// Performs block splitting withouth checking if the remaining space woult be
+// enough to fit a whole new block. Thus, this check must be performed by the
+// caller.
+//
+// This function shall never be called directly by the user and it is in fact a
+// static function in the implementation file. 
+static void split(mbheader *hdr, size_t al_payload_sz)
+{
+    size_t old_payload_sz = hdr->payload_sz;
+    mbheader *old_hdr_next = hdr->hdr_next;
+
+    mbheader *hdr_new = (mbheader *)((char *)hdr + AL_HDR_SZ + al_payload_sz);
+
+    // Updating the current block.
+    hdr->payload_sz = al_payload_sz;
+    hdr->hdr_next = hdr_new;
+
+    // Initializing the new block.
+    hdr_new->payload_sz = old_payload_sz - al_payload_sz - AL_HDR_SZ;
+    hdr_new->free = 1;
+    hdr_new->hdr_prev = hdr;
+    hdr_new->hdr_next = old_hdr_next;
+
+    // Updating the next-in-the-heap block.
+    if(old_hdr_next != NULL)
+    {
+        old_hdr_next->hdr_prev = hdr_new;
+    }
 }
 
 
@@ -58,6 +105,15 @@ void *hmalloc(size_t size)
         heap_start = sbrk(0);
         //           ^^^^^^^ We suppose this call not to fail.
     }
+
+
+    // Since we align `size` (possibly making it bigger) and also have to take
+    // into account the header exists, it's safer to perform an overflow check:
+    if(al_payload_sz < size || al_payload_sz > SIZE_MAX - AL_HDR_SZ)
+    {
+        return NULL;
+    }
+
 
     // The first strategy used to allocate the requested memory is scanning the
     // heap for a block whose payload is big enough to contain `al_payload_sz`
@@ -83,28 +139,7 @@ void *hmalloc(size_t size)
             // block we found is big enough for the minimum allocatable block.
             if((hdr_curr->payload_sz - al_payload_sz) >= MIN_BLOCK_SZ)
             {
-                size_t old_payload_sz = hdr_curr->payload_sz;
-                mbheader *old_hdr_next = hdr_curr->hdr_next;
-
-                mbheader *hdr_new = (mbheader *)
-                    ((char *)hdr_curr + AL_HDR_SZ + al_payload_sz);
-
-                // Updating the current block.
-                hdr_curr->payload_sz = al_payload_sz;
-                hdr_curr->hdr_next = hdr_new;
-
-                // Initializing the new block.
-                hdr_new->payload_sz 
-                    = old_payload_sz - al_payload_sz - AL_HDR_SZ;
-                hdr_new->free = 1;
-                hdr_new->hdr_prev = hdr_curr;
-                hdr_new->hdr_next = old_hdr_next;
-
-                // Updating the next-in-the-heap block.
-                if(old_hdr_next != NULL)
-                {
-                    old_hdr_next->hdr_prev = hdr_new;
-                }
+                split(hdr_curr, al_payload_sz);
             }
 
             return ((char *)hdr_curr + AL_HDR_SZ);
@@ -153,27 +188,6 @@ void *hmalloc(size_t size)
 
 
 
-
-void *hcalloc(size_t n_el, size_t size_el)
-{
-    // If an overflow would happen, we return a `NULL` pointer.
-    if(size_el != 0 && n_el > SIZE_MAX / size_el)
-    {
-        return NULL;
-    }
-
-    void *p = hmalloc(n_el * size_el);
-    if(p != NULL)
-    {
-        // We initialize the memory to `0`.
-        memset(p, 0, n_el * size_el);
-    }
-
-    return p;
-}
-
-
-
 void hfree(void *p)
 {
     // If argument is `NULL`, the expected behaviour is to do nothing.
@@ -213,17 +227,8 @@ void hfree(void *p)
     //Let's preemtively free the block.
     p_hdr->free = 1;
 
-    // We now check if we can coalesce the block with its neighbours.
-    
-    while(p_hdr->hdr_next != NULL && p_hdr->hdr_next->free)
-    {
-        p_hdr = coalesce_right(p_hdr);
-    }
-
-    while(p_hdr->hdr_prev != NULL && p_hdr->hdr_prev->free)
-    {
-        p_hdr = coalesce_left(p_hdr);
-    }
+    // We merge free blocks together.
+    p_hdr = coalesce(p_hdr);
 
     // Note that if left coalescing happened, now we are pointint to the header
     // of the block that was on the left of the block originally pointed by
@@ -249,4 +254,59 @@ void hfree(void *p)
         // Call assumed not to fail.
         sbrk((intptr_t)(- AL_HDR_SZ - p_hdr->payload_sz));
     }     
+}
+
+
+
+void *hcalloc(size_t n_el, size_t size_el)
+{
+    // If an overflow would happen, we return a `NULL` pointer.
+    if(size_el != 0 && n_el > SIZE_MAX / size_el)
+    {
+        return NULL;
+    }
+
+    void *p = hmalloc(n_el * size_el);
+    if(p != NULL)
+    {
+        // We initialize the memory to `0`.
+        memset(p, 0, n_el * size_el);
+    }
+
+    return p;
+}
+
+
+
+void *hrealloc(void *p, size_t size_new)
+{
+    // If `*p` is `NULL`, the function behaves like `hmalloc(size_new)`.
+    if(p == NULL)
+    {
+        return hmalloc(size_new);
+    }
+
+    // If `size_new` is `0`, the function behaves like `hfree(p)`.
+    if(size_new == 0)
+    {
+        hfree(p);
+        return NULL;
+    }
+
+    // This minimal implementation always reallocates memory
+
+    void *p_new = hmalloc(size_new);
+
+    if(p_new == NULL)
+    {
+        return NULL;
+    }
+
+    mbheader *p_hdr = (mbheader *)((char *)p - AL_HDR_SZ);
+
+    memcpy(p_new, p, MIN(p_hdr->payload_sz, size_new));
+
+    hfree(p);
+
+    return p_new;
 }
