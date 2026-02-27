@@ -8,11 +8,12 @@ Current state of the project, as a minimal version:
 
 <div align="center">
 
-| `hmalloc()`          | `hfree()`                 | `hcalloc()`              | `hrealloc()`          | `hreallocarray()`         | 
-|:---------------------|:--------------------------|:-------------------------|:----------------------|:--------------------------|
-| ✅ Memory alignment  | ✅ Program break lowering | ✅ Overflow checking     | ✅ Edge cases         | ❌ (absent)               |
-| ✅ Block splitting   | ✅ Argument checking      | ✅ Memory initialization | ⚠️ Always reallocates |                           |
-| ✅ Overflow checking | ✅ Block coalescing       |                          |                       |                           |
+| `hmalloc()`          | `hfree()`                 | `hcalloc()`              | `hrealloc()`           | `hreallocarray()`         | 
+|:---------------------|:--------------------------|:-------------------------|:-----------------------|:--------------------------|
+| ✅ Memory alignment  | ✅ Program break lowering | ✅ Overflow checking     | ✅ Edge cases          | ❌ (absent)               |
+| ✅ Block splitting   | ✅ Argument checking      | ✅ Memory initialization | ✅ Shrinking in place  |                           |
+| ✅ Overflow checking | ✅ Block coalescing       |                          | ✅ Grow in place       |                           |
+|                      |                           |                          | ✅ Fallback allocation |                           |
 
 </div>
 

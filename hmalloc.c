@@ -293,9 +293,73 @@ void *hrealloc(void *p, size_t size_new)
         return NULL;
     }
 
-    // This minimal implementation always reallocates memory
+    // `hrealloc()` will work differently depending on whether we are trying to
+    // shrink or enlarge a block.
 
-    void *p_new = hmalloc(size_new);
+    size_t al_size_new = ALIGN(size_new);
+    mbheader *p_hdr = (mbheader *)((char *)p -AL_HDR_SZ);
+
+    // No change
+    if(al_size_new == p_hdr->payload_sz)
+    {
+        return p;
+    }
+
+    // Shrinking case
+    if(al_size_new < p_hdr->payload_sz)
+    {
+        // If we can't really split the block, we apply no changes.
+        if((p_hdr->payload_sz - al_size_new) >= MIN_BLOCK_SZ)
+        {
+            split(p_hdr, al_size_new);
+
+            // We also want to try coalescing if free blocks follow.
+            coalesce(p_hdr->hdr_next);
+
+            // We want to check if we created a free block at the end of the 
+            // heap.
+            if(p_hdr->hdr_next->hdr_next == NULL)
+            {
+                // This will make the heap shrink.
+                hfree(p_hdr->hdr_next);
+            }
+        }
+
+        return p;
+    }
+
+    // Grow in the middle of the heap case.
+    // Surely `al_size_new > p_hdr->payload_sz` now.
+    if(p_hdr->hdr_next != NULL && p_hdr->hdr_next->free == 1 
+        && p_hdr->payload_sz + AL_HDR_SZ + p_hdr->hdr_next->payload_sz
+            >= al_size_new)
+    {
+        p_hdr = coalesce_right(p_hdr);
+        
+        // We want to check if we need to take the whole block or not.
+        if(p_hdr->payload_sz >= al_size_new + MIN_BLOCK_SZ)
+        {
+            split(p_hdr, al_size_new);
+        }
+
+        return p;
+    }
+    
+    // Grow at the end of the heap case.
+    if(p_hdr->hdr_next == NULL)
+    {
+        if(sbrk((intptr_t)(al_size_new - p_hdr->payload_sz)) != (void *)-1)
+        {
+            p_hdr->payload_sz = al_size_new;
+            return p;
+        }
+
+        return NULL;
+    }
+
+    // Fallback allocation case.
+
+    void *p_new = hmalloc(al_size_new);
 
     if(p_new == NULL)
     {
@@ -304,7 +368,7 @@ void *hrealloc(void *p, size_t size_new)
 
     mbheader *p_hdr = (mbheader *)((char *)p - AL_HDR_SZ);
 
-    memcpy(p_new, p, MIN(p_hdr->payload_sz, size_new));
+    memcpy(p_new, p, p_hdr->payload_sz);
 
     hfree(p);
 
