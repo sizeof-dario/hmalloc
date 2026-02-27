@@ -89,5 +89,7 @@ Now, `hrealloc()` performs different operations depending on whether the request
 
 ## [Working](https://github.com/sizeof-dario/hmalloc/commit/8a0ba42) `hreallocarray()`
 The function was included for a complete minimal allocator compatible with the functions available in a POSIX environment. Remember that the stdlib function 'reallocarray()' is not ISO C and has in fact Feature Test Macro Requirements.
+> [!Tip]
+> At this point, the minimal version of each function is complete. However, we can do some optimization (like using `mmap()` for big blocks in `hmalloc()`) or implement unit tests. Such features are expected.
 
 [^1]: `hmalloc()` should perform an overflow checking. However, to this version, it does not. This gets fixed when `hrealloc()` is introduced for the first time. 
