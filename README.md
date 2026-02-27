@@ -8,12 +8,12 @@ Current state of the project, as a minimal version:
 
 <div align="center">
 
-| ✅ `hmalloc()`    | ✅ `hfree()`           | ✅ `hcalloc()`        | ✅ `hrealloc()`     | ❌`hreallocarray()`       | 
-|:------------------|:-----------------------|:----------------------|:--------------------|:--------------------------|
-| Memory alignment  | Program break lowering | Overflow checking     | Edge cases          | (absent)                  |
-| Block splitting   | Argument checking      | Memory initialization | Shrinking in place  |                           |
-| Overflow checking | Block coalescing       |                       | Grow in place       |                           |
-|                   |                        |                       | Fallback allocation |                           |
+| ✅ `hmalloc()`  | ✅ `hfree()`         | ✅ `hcalloc()`     | ✅ `hrealloc()`    | ❌`hreallocarray()`       | 
+|:----------------|:---------------------|:-------------------|:-------------------|:--------------------------|
+| Aligns memory   | Lowers program break | Checks overflow    | Checks edge cases  | (absent)                  |
+| Splits blocks   | Checks argumebts     | Initializes memory | Shrinks in place   |                           |
+| Checks overflow | Coalesces blocks     |                    | Grows in place     |                           |
+|                 |                      |                    | Fallback allocates |                           |
 
 </div>
 
@@ -83,6 +83,9 @@ Block coalescing was implemented to reduce external fragmentation (that is, the 
 ## [Minimal working](https://github.com/sizeof-dario/hmalloc/commit/2c81caf) `hrealloc()`
 
 A minimal version of `hrealloc()` was implemented. It checks for the edge cases (if its arguments are `NULL` or `0`) and always reallocates the block. This version is intentionally simplistic and far from finished, since it should distinguish between shrinking and enlarging a block of memory, and decide what to do in the second case depending on whether there is free space around the block or if it's at the end of the heap.
+
+## [Working](https://github.com/sizeof-dario/hmalloc/commit/950fbd7) `hrealloc()`
+Now, `hrealloc()` performs different operations depending on whether the requested size is greater or lesser than the original one. Moreover, if the new size is smaller, the functions shrinks the block in place; if it is bigger, it first tries local changes to the heap structure and only reallocates as a fallback strategy if anything else fails.
 
 
 [^1]: `hmalloc()` should perform an overflow checking. However, to this version, it does not. This gets fixed when `hrealloc()` is introduced for the first time. 
