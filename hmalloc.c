@@ -374,3 +374,17 @@ void *hrealloc(void *p, size_t size_new)
 
     return p_new;
 }
+
+
+
+void *hreallocarray(void *p, size_t n_el_new, size_t size_el_new)
+{
+    // If an overflow would happen, we return a `NULL` pointer.
+    if(size_el_new != 0 && n_el_new > SIZE_MAX / size_el_new)
+    {
+        return NULL;
+    }
+
+    return hrealloc(p, n_el_new * size_el_new);
+}
+

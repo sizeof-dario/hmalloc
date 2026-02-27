@@ -65,4 +65,11 @@ void *hcalloc(size_t n_el, size_t size_el);
 void *hrealloc(void *p, size_t size_new);
 
 
+
+// Reallocates an array pointed to by `p` so that it can have enough space for
+// `n_el_new` elements of size `size_e_newl`.
+void *hreallocarray(void *p, size_t n_el_new, size_t size_el_new);
+
+
+
 #endif // HMALLOC_H
