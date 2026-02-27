@@ -88,7 +88,7 @@ A minimal version of `hrealloc()` was implemented. It checks for the edge cases 
 Now, `hrealloc()` performs different operations depending on whether the requested size is greater or lesser than the original one. Moreover, if the new size is smaller, the functions shrinks the block in place; if it is bigger, it first tries local changes to the heap structure and only reallocates as a fallback strategy if anything else fails.
 
 ## [Working](https://github.com/sizeof-dario/hmalloc/commit/8a0ba42) `hreallocarray()`
-The function was included for a complete minimal allocator compatible with the functions available in a POSIX environment. Remember that the stdlib function 'reallocarray()' is not ISO C and has in fact Feature Test Macro Requirements.
+The function was included for a complete minimal allocator compatible with the functions available in a POSIX environment. Remember that the stdlib function `reallocarray()` is not ISO C and has in fact Feature Test Macro Requirements.
 > [!Tip]
 > At this point, the minimal version of each function is complete. However, we can do some optimization (like using `mmap()` for big blocks in `hmalloc()`) or implement unit tests. Such features are expected.
 
